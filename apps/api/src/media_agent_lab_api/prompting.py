@@ -33,17 +33,40 @@ def build_mock_analysis_result() -> AnalysisResult:
         confidence=0.74,
         used_in_prompt=True,
     )
+    return build_analysis_result(track, vocal=vocal, language=language)
+
+
+def build_analysis_result(
+    track: TrackAnalysis,
+    vocal: VocalAnalysis | None = None,
+    language: LanguageAnalysis | None = None,
+) -> AnalysisResult:
+    vocal = vocal or VocalAnalysis(
+        median_pitch_hz=0.0,
+        range_bucket="khong ro",
+        voice_descriptor="giong hat chua phan tach chi tiet",
+        brightness=track.brightness,
+        power=track.energy,
+        confidence={"pitch": 0.0, "range": 0.0, "voice_descriptor": 0.2},
+    )
+    language = language or LanguageAnalysis(
+        detected=None,
+        label_vi=None,
+        confidence=0.0,
+        used_in_prompt=False,
+    )
+    opening = "nhac pop ballad Viet Nam" if language.used_in_prompt else "nhac pop ballad"
     fragments = [
-        "nhac pop ballad Viet Nam",
+        opening,
         f"tempo {track.tempo_bucket} {track.bpm} BPM",
         f"tong {track.key_vi}",
         vocal.voice_descriptor,
-        "am sac sang va tinh cam",
+        f"am sac {track.brightness} va tinh cam",
         *track.instrumentation,
         "khong khi cam xuc cho diep khuc tru tinh",
     ]
     prompt = PromptResult(
-        tags_vi=", ".join(fragments),
+        tags_vi=", ".join(fragment for fragment in fragments if fragment),
         omitted_fields=["chords"],
         warnings=["genre la heuristic co confidence trung binh"],
     )

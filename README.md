@@ -7,20 +7,21 @@ Local-first MVP for turning an MP3 reference track into a Vietnamese ACE-Step pr
 - Windows workstation
 - Python 3.12 venv at `.venv`
 - NVIDIA GPU optional, validated with `scripts/check_cuda.ps1`
-- FFmpeg required before real audio processing
+- FFmpeg provided by `imageio-ffmpeg` when system FFmpeg is unavailable
 - Node.js and npm for the Vite web app
 
 ## First Slice
 
-The current implementation target is a CUDA-ready app skeleton:
+The current implementation is a CUDA-ready audio pipeline:
 
 - FastAPI upload and job endpoints
 - SQLite job store
-- deterministic mock worker result
+- FFmpeg MP3-to-WAV conversion
+- Demucs stem separation with CUDA when available
+- librosa mix analysis
+- deterministic ACE-Step prompt generation
 - React upload/result UI
 - local CUDA/FFmpeg smoke script
-
-Real FFmpeg, librosa, Demucs, and faster-whisper integration come after this skeleton is stable.
 
 ## Setup
 
@@ -28,15 +29,17 @@ If Python 3.12 is installed elsewhere, replace the hard-coded executable path wi
 
 ```powershell
 C:\Users\ADMIN\AppData\Local\Programs\Python\Python312\python.exe -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e .\apps\api[dev]
+.\.venv\Scripts\python.exe -m pip install --trusted-host download.pytorch.org --trusted-host download-r2.pytorch.org --trusted-host pypi.org --trusted-host files.pythonhosted.org torch==2.11.0+cu128 torchaudio==2.11.0+cu128 --index-url https://download.pytorch.org/whl/cu128 --extra-index-url https://pypi.org/simple
+.\.venv\Scripts\python.exe -m pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org -e .\apps\api[dev]
 cd apps\web
-npm.cmd install
+npm.cmd install --strict-ssl=false
 ```
 
 ## Verify
 
 ```powershell
 npm.cmd run api:test
+npm.cmd run web:build
 npm.cmd run check:cuda
 ```
 
@@ -64,4 +67,4 @@ npm.cmd run web:build
 npm.cmd run check:cuda
 ```
 
-If `check:cuda` reports missing PyTorch or missing FFmpeg, the app skeleton can still run with the mock worker. Real audio processing should wait until those dependencies are installed and validated.
+If `check:cuda` reports missing system FFmpeg but finds bundled `imageio-ffmpeg`, real audio conversion can still run. The first Demucs separation may take longer if model weights are not already cached locally.

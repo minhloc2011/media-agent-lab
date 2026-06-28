@@ -12,8 +12,8 @@ from media_agent_lab_api.models import (
     JobStatusResponse,
     status_progress,
 )
+from media_agent_lab_api.pipeline import run_audio_pipeline
 from media_agent_lab_api.store import JobStore
-from media_agent_lab_api.worker import run_mock_pipeline
 
 
 app = FastAPI(title="Media Agent Lab API")
@@ -48,8 +48,9 @@ async def create_job(
     content = await file.read()
     job = store.create_job(filename)
     store.save_upload(job.id, filename, content)
-    run_mock_pipeline(store, job.id)
-    return JobCreateResponse(job_id=job.id, status=job.status)
+    run_audio_pipeline(store, job.id)
+    updated_job = store.get_job(job.id) or job
+    return JobCreateResponse(job_id=updated_job.id, status=updated_job.status)
 
 
 @app.get("/api/jobs/{job_id}", response_model=JobStatusResponse)
@@ -89,7 +90,7 @@ def get_asset(
     store: JobStore = Depends(get_store),
 ) -> FileResponse:
     if asset_name != "metadata":
-        raise HTTPException(status_code=404, detail="Asset not available in mock pipeline")
+        raise HTTPException(status_code=404, detail="Asset not available")
     metadata_path = _metadata_path(store, job_id)
     if not metadata_path.exists():
         raise HTTPException(status_code=404, detail="Asset not found")

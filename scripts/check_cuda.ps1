@@ -15,7 +15,12 @@ Write-Host "Checking FFmpeg..."
 try {
   ffmpeg -version | Select-Object -First 1
 } catch {
-  Write-Warning "FFmpeg is not available on PATH. Real audio conversion will not work yet."
+  Write-Warning "FFmpeg is not available on PATH. Checking bundled imageio-ffmpeg instead."
+  $ffmpegCheck = @'
+import imageio_ffmpeg
+print(f'bundled_ffmpeg: {imageio_ffmpeg.get_ffmpeg_exe()}')
+'@
+  & $python -c $ffmpegCheck
 }
 
 Write-Host "Checking PyTorch CUDA..."
@@ -33,5 +38,15 @@ if torch.cuda.is_available():
 '@
 
 & $python -c $torchCheck
+
+Write-Host "Checking audio analysis packages..."
+$audioCheck = @'
+import librosa
+import demucs
+print(f'librosa: {librosa.__version__}')
+print('demucs: installed')
+'@
+
+& $python -c $audioCheck
 
 Write-Host "Environment smoke check finished."
