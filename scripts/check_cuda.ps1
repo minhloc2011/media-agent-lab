@@ -14,11 +14,25 @@ Write-Host "Checking Python runtime..."
 Write-Host "Checking FFmpeg..."
 try {
   ffmpeg -version | Select-Object -First 1
+  ffprobe -version | Select-Object -First 1
 } catch {
-  Write-Warning "FFmpeg is not available on PATH. Checking bundled imageio-ffmpeg instead."
+  Write-Warning "FFmpeg/FFprobe are not both available on PATH. Checking Python fallbacks instead."
   $ffmpegCheck = @'
 import imageio_ffmpeg
+from pathlib import Path
+
 print(f'bundled_ffmpeg: {imageio_ffmpeg.get_ffmpeg_exe()}')
+try:
+    from static_ffmpeg.run import get_platform_dir
+except ModuleNotFoundError:
+    print('static_ffmpeg: missing')
+else:
+    directory = Path(get_platform_dir())
+    ffmpeg = directory / 'ffmpeg.exe'
+    ffprobe = directory / 'ffprobe.exe'
+    print(f'static_ffmpeg_dir: {directory}')
+    print(f'static_ffmpeg_ffmpeg: {ffmpeg.exists()}')
+    print(f'static_ffmpeg_ffprobe: {ffprobe.exists()}')
 '@
   & $python -c $ffmpegCheck
 }
