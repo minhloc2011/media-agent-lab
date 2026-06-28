@@ -66,19 +66,20 @@ Rationale: the UI is a focused local tool with upload, progress, and result view
 
 ### Backend
 
-- Python 3.11+
+- Python 3.12 as the primary local runtime
 - FastAPI
 - Uvicorn
 - Pydantic
 - SQLite
 - SQLModel or SQLAlchemy Core
 
-Rationale: the audio and MIR libraries are Python-native, and FastAPI gives a simple API surface for uploads, polling, and asset downloads.
+Rationale: the audio and MIR libraries are Python-native, and FastAPI gives a simple API surface for uploads, polling, and asset downloads. Python 3.12 is the first target for this Windows workstation because PyTorch, Demucs, librosa, and audio packages are more predictable there than on Python 3.13.
 
 ### Worker And Audio Pipeline
 
 - Python worker process
 - FFmpeg CLI
+- PyTorch with CUDA-enabled wheels
 - Demucs, pinned to a known working version
 - librosa
 - soundfile
@@ -88,6 +89,31 @@ Rationale: the audio and MIR libraries are Python-native, and FastAPI gives a si
 - Essentia as phase 1.5 optional enhancement
 
 Rationale: Demucs, librosa, and FFmpeg are enough to build the first useful local pipeline. Essentia is powerful, but it can add install/model complexity, so the MVP should not block on it.
+
+### Local Windows CUDA Target
+
+The initial development machine has an NVIDIA GeForce RTX 4060 with 8 GB VRAM. `nvidia-smi` reports driver 591.86 and CUDA runtime 13.1. The MVP should use the GPU for PyTorch-backed steps where available, while keeping CPU fallbacks for portability.
+
+Runtime contract:
+
+- Use `C:\Users\ADMIN\AppData\Local\Programs\Python\Python312\python.exe` or a project venv created from it.
+- Do not target Python 3.13 for the first ML/audio environment.
+- `nvcc` is not required for the MVP because PyTorch CUDA wheels include the needed runtime pieces.
+- FFmpeg must be installed and available on `PATH` before real audio processing is enabled.
+- PyTorch must be installed from the official selector with a CUDA wheel that supports the local driver.
+- The worker must verify `torch.cuda.is_available()` at startup and record the selected device in logs.
+- Demucs should run with CUDA when available and fall back to CPU with a clear warning.
+- GPU worker concurrency should start at `1` to avoid exhausting 8 GB VRAM.
+- `faster-whisper` should remain optional and default to CPU until its CUDA/cuDNN runtime is validated separately.
+
+Recommended environment smoke checks:
+
+```powershell
+nvidia-smi
+C:\Users\ADMIN\AppData\Local\Programs\Python\Python312\python.exe --version
+ffmpeg -version
+.\.venv\Scripts\python.exe -c "import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'cpu')"
+```
 
 ### Local Storage
 
@@ -414,6 +440,15 @@ The result page should make the prompt the primary artifact. Metadata should sup
 - result JSON serialization
 - asset endpoint authorization by allowed asset name
 
+### Environment Smoke Tests
+
+- Confirm Python 3.12 venv is active.
+- Confirm FFmpeg is available from the API/worker process.
+- Confirm PyTorch imports successfully.
+- Confirm CUDA is visible to PyTorch on the RTX 4060.
+- Confirm Demucs can run a short fixture with `--device cuda`.
+- Confirm the worker logs CPU fallback when CUDA is unavailable.
+
 ### Manual Verification
 
 - Run local API and UI.
@@ -424,6 +459,15 @@ The result page should make the prompt the primary artifact. Metadata should sup
 - Confirm assets and metadata are downloadable.
 
 ## 14. Implementation Phases
+
+### Phase 0: Local CUDA Bootstrap
+
+- Create a project venv from Python 3.12.
+- Install FastAPI/API base dependencies separately from heavy ML dependencies.
+- Install FFmpeg and verify it is on `PATH`.
+- Install a CUDA-enabled PyTorch wheel and verify `torch.cuda.is_available()`.
+- Install Demucs and run a short GPU smoke test.
+- Add a checked-in environment verification command or script for repeatable setup.
 
 ### Phase 1: App Skeleton
 
@@ -442,6 +486,7 @@ The result page should make the prompt the primary artifact. Metadata should sup
 ### Phase 3: Stem Separation
 
 - Add Demucs worker step.
+- Select `cuda` when available and record GPU name in job logs.
 - Store stems.
 - Use vocal stem for vocal analysis.
 - Use stem energy ratios for arrangement hints.
@@ -474,6 +519,7 @@ The result page should make the prompt the primary artifact. Metadata should sup
 - ACE-Step GitHub: https://github.com/ace-step/ACE-Step
 - FastAPI documentation: https://fastapi.tiangolo.com/
 - Vite guide: https://vite.dev/guide/
+- PyTorch local installation guide: https://pytorch.org/get-started/locally/
 - Demucs GitHub: https://github.com/facebookresearch/demucs
 - librosa documentation: https://librosa.org/doc/latest/index.html
 - Essentia documentation: https://essentia.upf.edu/

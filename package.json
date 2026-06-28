@@ -1,0 +1,12 @@
+{
+  "name": "media-agent-lab",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "api:test": "cd apps/api && ..\\..\\.venv\\Scripts\\python.exe -m pytest",
+    "api:dev": "cd apps/api && ..\\..\\.venv\\Scripts\\python.exe -m uvicorn media_agent_lab_api.main:app --reload --host 127.0.0.1 --port 8000",
+    "web:dev": "cd apps/web && npm.cmd run dev",
+    "web:build": "cd apps/web && npm.cmd run build",
+    "check:cuda": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check_cuda.ps1"
+  }
+}
