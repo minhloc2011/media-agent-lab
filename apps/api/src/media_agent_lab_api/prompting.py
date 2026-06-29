@@ -67,6 +67,31 @@ VOICE_LABELS = {
     "giong hat chua phan tach chi tiet": "giọng hát chưa phân tích chi tiết",
 }
 
+DENSITY_LABELS = {
+    "thoang": "thoáng",
+    "can bang": "cân bằng",
+    "day": "dày",
+}
+
+PRESENCE_LABELS = {
+    "lui": "lùi nhẹ",
+    "can bang": "cân bằng",
+    "noi bat": "nổi bật",
+}
+
+ENERGY_CURVE_LABELS = {
+    "giu deu": "giữ đều",
+    "tang dan": "tăng dần",
+    "cao trao ro": "có cao trào rõ",
+    "giam dan": "giảm dần",
+}
+
+CHORUS_LIFT_LABELS = {
+    "nhe": "nhẹ",
+    "vua": "vừa",
+    "manh": "mạnh",
+}
+
 
 def build_mock_analysis_result() -> AnalysisResult:
     track = TrackAnalysis(
@@ -136,6 +161,10 @@ def _build_ace_prompt(
     energy = _label(track.energy, ENERGY_LABELS)
     brightness = _label(track.brightness, BRIGHTNESS_LABELS)
     voice = _label(vocal.voice_descriptor, VOICE_LABELS)
+    density = _label(vocal.density, DENSITY_LABELS)
+    presence = _label(vocal.presence, PRESENCE_LABELS)
+    energy_curve = _label(track.energy_curve, ENERGY_CURVE_LABELS)
+    chorus_lift = _label(track.chorus_lift, CHORUS_LIFT_LABELS)
     instruments = [_label(item, INSTRUMENTATION_LABELS) for item in track.instrumentation]
     arrangement = ", ".join(instruments) if instruments else "piano, bass mềm và trống tiết chế"
 
@@ -150,8 +179,13 @@ def _build_ace_prompt(
             "điệp khúc mở hơn với trống chắc, bass ấm và lớp hòa âm mềm."
         ),
         (
-            f"Giọng hát: {voice}; ưu tiên cách hát rõ chữ, gần gũi, có độ ngân ở cuối câu, "
+            f"Giọng hát: {voice}, mật độ câu hát {density}, hiện diện {presence}; "
+            f"{vocal.phrasing}, ưu tiên cách hát rõ chữ, gần gũi, có độ ngân ở cuối câu, "
             "không mô phỏng danh tính người biểu diễn cụ thể."
+        ),
+        (
+            f"Đường cong năng lượng {energy_curve}; {track.section_hint}. "
+            f"Mức mở điệp khúc {chorus_lift}, giữ verse tối giản và để pre-chorus nâng dần trước cao trào."
         ),
         (
             "Không khí tổng thể sâu lắng, lãng mạn, hiện đại, phù hợp lời mới bằng tiếng Việt. "

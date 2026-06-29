@@ -70,8 +70,26 @@ def test_build_analysis_result_returns_rich_vietnamese_ace_prompt():
         instrumentation=["full mix reference", "vocals da tach", "trong da tach"],
         confidence={"bpm": 0.82, "key": 0.5, "instrumentation": 0.55},
     )
+    track = track.model_copy(
+        update={
+            "energy_curve": "tang dan",
+            "section_hint": "verse tối giản, điệp khúc mở rộng",
+            "chorus_lift": "manh",
+        }
+    )
+    vocal = VocalAnalysis(
+        median_pitch_hz=220.0,
+        range_bucket="trung-cao",
+        voice_descriptor="giọng trung-cao sáng vừa",
+        brightness="sang",
+        power="cao",
+        density="can bang",
+        phrasing="câu hát có khoảng thở tự nhiên",
+        presence="noi bat",
+        confidence={"pitch": 0.72, "range": 0.68, "voice_descriptor": 0.62},
+    )
 
-    result = build_analysis_result(track)
+    result = build_analysis_result(track, vocal=vocal)
     prompt = result.prompt.tags_vi
     prompt_lower = prompt.lower()
 
@@ -80,10 +98,15 @@ def test_build_analysis_result_returns_rich_vietnamese_ace_prompt():
     assert "tông mi thứ" in prompt_lower
     assert "phối khí" in prompt_lower
     assert "giọng hát" in prompt_lower
+    assert "giọng trung-cao sáng vừa" in prompt
+    assert "câu hát có khoảng thở tự nhiên" in prompt
     assert "lời mới" in prompt_lower
     assert "điệp khúc" in prompt_lower
     assert "không khí" in prompt_lower
+    assert "Đường cong năng lượng" in prompt
+    assert "điệp khúc mở rộng" in prompt
     assert len(prompt) > 450
     assert "nhac " not in prompt
     assert " khong " not in prompt
     assert "giong " not in prompt
+    assert "chưa phân tích chi tiết" not in prompt

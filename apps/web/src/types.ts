@@ -41,6 +41,9 @@ export interface AnalysisResult {
     brightness: string;
     instrumentation: string[];
     confidence: Record<string, number>;
+    energy_curve: string;
+    section_hint: string;
+    chorus_lift: string;
   };
   vocal: {
     median_pitch_hz: number;
@@ -49,6 +52,9 @@ export interface AnalysisResult {
     brightness: string;
     power: string;
     confidence: Record<string, number>;
+    density: string;
+    phrasing: string;
+    presence: string;
   };
   language: {
     detected: string | null;

@@ -4,10 +4,12 @@ from typing import Protocol
 
 from media_agent_lab_api.audio_converter import AudioConverter
 from media_agent_lab_api.mix_analyzer import analyze_mix
-from media_agent_lab_api.models import AnalysisResult, JobStatus, TrackAnalysis
+from media_agent_lab_api.models import AnalysisResult, JobStatus, TrackAnalysis, VocalAnalysis
 from media_agent_lab_api.prompting import build_analysis_result
 from media_agent_lab_api.stem_separator import DemucsStemSeparator, StemPaths
 from media_agent_lab_api.store import JobStore
+from media_agent_lab_api.structure_analyzer import analyze_structure
+from media_agent_lab_api.vocal_analyzer import analyze_vocal
 
 
 class Converter(Protocol):
@@ -18,16 +20,28 @@ class Separator(Protocol):
     def separate(self, wav_path: Path, stems_dir: Path, work_dir: Path) -> StemPaths: ...
 
 
+class VocalAnalyzer(Protocol):
+    def __call__(self, vocal_path: Path) -> VocalAnalysis: ...
+
+
+class StructureAnalyzer(Protocol):
+    def __call__(self, wav_path: Path) -> dict[str, str]: ...
+
+
 class AudioPipeline:
     def __init__(
         self,
         converter: Converter | None = None,
         separator: Separator | None = None,
         mix_analyzer=analyze_mix,
+        vocal_analyzer: VocalAnalyzer = analyze_vocal,
+        structure_analyzer: StructureAnalyzer = analyze_structure,
     ):
         self.converter = converter or AudioConverter()
         self.separator = separator or DemucsStemSeparator()
         self.mix_analyzer = mix_analyzer
+        self.vocal_analyzer = vocal_analyzer
+        self.structure_analyzer = structure_analyzer
 
     def run(self, store: JobStore, job_id: str) -> AnalysisResult:
         job = store.get_job(job_id)
@@ -52,8 +66,13 @@ class AudioPipeline:
                 instrumentation.append("trong da tach")
             track = track.model_copy(update={"instrumentation": instrumentation})
 
+            store.update_status(job_id, JobStatus.ANALYZING_VOCAL)
+            vocal = self.vocal_analyzer(stems.vocals) if stems.vocals.exists() else None
+            structure = self.structure_analyzer(wav_path)
+            track = track.model_copy(update=structure)
+
             store.update_status(job_id, JobStatus.GENERATING_PROMPT)
-            result = build_analysis_result(track)
+            result = build_analysis_result(track, vocal=vocal)
             metadata_path = job_dir / "metadata" / "result.json"
             metadata_path.write_text(
                 json.dumps(result.model_dump(), ensure_ascii=False, indent=2),

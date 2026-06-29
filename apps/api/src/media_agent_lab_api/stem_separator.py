@@ -21,7 +21,15 @@ class StemPaths:
 
 def _default_runner(command: list[str], env: dict[str, str] | None = None) -> None:
     try:
-        subprocess.run(command, check=True, capture_output=True, text=True, env=env)
+        subprocess.run(
+            command,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+        )
     except subprocess.CalledProcessError as exc:
         details = "\n".join(
             part

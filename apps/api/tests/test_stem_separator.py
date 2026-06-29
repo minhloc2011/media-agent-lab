@@ -1,6 +1,22 @@
 from pathlib import Path
+import subprocess
 
-from media_agent_lab_api.stem_separator import DemucsStemSeparator
+from media_agent_lab_api.stem_separator import DemucsStemSeparator, _default_runner
+
+
+def test_default_runner_tolerates_utf8_demucs_output(monkeypatch):
+    captured: dict[str, object] = {}
+
+    def fake_run(command, **kwargs):
+        captured.update(kwargs)
+        return subprocess.CompletedProcess(command, 0)
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    _default_runner(["python", "-m", "demucs"])
+
+    assert captured["encoding"] == "utf-8"
+    assert captured["errors"] == "replace"
 
 
 def test_demucs_stem_separator_builds_command_and_collects_stems(tmp_path: Path):

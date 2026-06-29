@@ -58,6 +58,9 @@ class TrackAnalysis(BaseModel):
     brightness: str
     instrumentation: list[str]
     confidence: dict[str, float]
+    energy_curve: str = "giu deu"
+    section_hint: str = "verse tối giản, điệp khúc mở rộng"
+    chorus_lift: str = "vua"
 
 
 class VocalAnalysis(BaseModel):
@@ -67,6 +70,9 @@ class VocalAnalysis(BaseModel):
     brightness: str
     power: str
     confidence: dict[str, float]
+    density: str = "can bang"
+    phrasing: str = "câu hát có khoảng thở tự nhiên"
+    presence: str = "can bang"
 
 
 class LanguageAnalysis(BaseModel):
