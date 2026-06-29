@@ -53,5 +53,7 @@ def test_audio_pipeline_runs_convert_separate_analyze_and_writes_result(tmp_path
     assert loaded is not None
     assert loaded.status == JobStatus.COMPLETED
     assert result.track.bpm == 96
-    assert "tempo vua 96 BPM" in result.prompt.tags_vi
+    assert "tempo vừa 96 BPM" in result.prompt.tags_vi
+    assert "phối khí" in result.prompt.tags_vi.lower()
+    assert "lời mới" in result.prompt.tags_vi
     assert (store.job_dir(job.id) / "metadata" / "result.json").exists()

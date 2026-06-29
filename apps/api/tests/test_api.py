@@ -62,7 +62,8 @@ def test_create_job_runs_mock_pipeline(tmp_path: Path, monkeypatch):
     assert create_response.json()["status"] == "completed"
     assert status_response.json()["status"] == "completed"
     assert status_response.json()["progress"] == 100
-    assert "nhac pop ballad Viet Nam" in result_response.json()["prompt"]["tags_vi"]
+    assert "nhạc pop ballad Việt Nam" in result_response.json()["prompt"]["tags_vi"]
+    assert "lời mới" in result_response.json()["prompt"]["tags_vi"]
 
 
 def test_metadata_asset_returns_result_json(tmp_path: Path, monkeypatch):

@@ -1,5 +1,5 @@
 from media_agent_lab_api.models import AnalysisResult, PromptResult, TrackAnalysis, VocalAnalysis
-from media_agent_lab_api.prompting import build_mock_analysis_result
+from media_agent_lab_api.prompting import build_analysis_result, build_mock_analysis_result
 
 
 def test_analysis_result_serializes_prompt_contract():
@@ -24,9 +24,9 @@ def test_analysis_result_serializes_prompt_contract():
             confidence={"pitch": 0.78, "range": 0.7, "voice_descriptor": 0.55},
         ),
         prompt=PromptResult(
-            tags_vi="nhac pop ballad Viet Nam, tempo cham 82 BPM",
+            tags_vi="nhạc pop ballad Việt Nam, tempo chậm 82 BPM",
             omitted_fields=["chords"],
-            warnings=["genre la heuristic co confidence trung binh"],
+            warnings=["Thể loại và tông nhạc được suy luận bằng heuristic."],
         ),
     )
 
@@ -40,19 +40,50 @@ def test_analysis_result_serializes_prompt_contract():
 def test_build_mock_analysis_result_includes_confident_fields():
     result = build_mock_analysis_result()
 
-    assert result.prompt.tags_vi == (
-        "nhac pop ballad Viet Nam, tempo cham 82 BPM, tong La thu, "
-        "giong cao sang, am sac sang va tinh cam, piano chu dao, "
-        "trong nhe, bass mem, khong khi cam xuc cho diep khuc tru tinh"
-    )
+    assert "nhạc pop ballad Việt Nam" in result.prompt.tags_vi
+    assert "tempo chậm 82 BPM" in result.prompt.tags_vi
+    assert "tông La thứ" in result.prompt.tags_vi
+    assert "giọng cao sáng" in result.prompt.tags_vi
+    assert "piano chủ đạo" in result.prompt.tags_vi
     assert result.prompt.omitted_fields == ["chords"]
-    assert "confidence trung binh" in result.prompt.warnings[0]
+    assert "heuristic" in result.prompt.warnings[0]
 
 
 def test_build_mock_analysis_result_avoids_biometric_claims():
     result = build_mock_analysis_result()
-    prompt_without_market = result.prompt.tags_vi.lower().replace("viet nam", "")
+    prompt_without_market = result.prompt.tags_vi.lower().replace("việt nam", "")
 
     assert "nam" not in prompt_without_market
-    assert "nu" not in prompt_without_market
-    assert "ca si" not in prompt_without_market
+    assert "nữ" not in prompt_without_market
+    assert "ca sĩ" not in prompt_without_market
+
+
+def test_build_analysis_result_returns_rich_vietnamese_ace_prompt():
+    track = TrackAnalysis(
+        bpm=89,
+        tempo_bucket="cham",
+        key="E",
+        scale="minor",
+        key_vi="Mi thu",
+        energy="thap",
+        brightness="am",
+        instrumentation=["full mix reference", "vocals da tach", "trong da tach"],
+        confidence={"bpm": 0.82, "key": 0.5, "instrumentation": 0.55},
+    )
+
+    result = build_analysis_result(track)
+    prompt = result.prompt.tags_vi
+    prompt_lower = prompt.lower()
+
+    assert "nhạc pop ballad" in prompt_lower
+    assert "tempo chậm 89 bpm" in prompt_lower
+    assert "tông mi thứ" in prompt_lower
+    assert "phối khí" in prompt_lower
+    assert "giọng hát" in prompt_lower
+    assert "lời mới" in prompt_lower
+    assert "điệp khúc" in prompt_lower
+    assert "không khí" in prompt_lower
+    assert len(prompt) > 450
+    assert "nhac " not in prompt
+    assert " khong " not in prompt
+    assert "giong " not in prompt
